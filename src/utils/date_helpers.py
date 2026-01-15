@@ -56,3 +56,47 @@ def parse_and_format_date(date_str: str) -> str:
     """
     date_obj = parse_date(date_str)
     return format_date_for_sql(date_obj)
+
+
+def construct_time_range(
+    business_date: str,
+    start_time: str = "09:30:00",
+    end_time: str = "15:00:00"
+) -> tuple[str, str]:
+    """
+    Construct datetime strings for time range filtering in SQL queries
+
+    Args:
+        business_date: Date in YYYY.MM.DD format
+        start_time: Start time in HH:MM:SS format (default: "09:30:00")
+        end_time: End time in HH:MM:SS format (default: "15:00:00")
+
+    Returns:
+        Tuple of (start_datetime, end_datetime) strings ready for SQL queries
+        Format: ("datetime('YYYY.MM.DD HH:MM:SS')", "datetime('YYYY.MM.DD HH:MM:SS')")
+
+    Raises:
+        ValueError: If date/time format is invalid
+    """
+    # Validate business_date format
+    if not business_date:
+        raise ValueError("business_date cannot be empty")
+
+    try:
+        # Just validate format, not actual date value
+        datetime.strptime(business_date, "%Y.%m.%d")
+    except ValueError:
+        raise ValueError(f"Invalid business_date format: {business_date}. Expected YYYY.MM.DD format")
+
+    # Validate time format
+    for time_val, name in [(start_time, "start_time"), (end_time, "end_time")]:
+        try:
+            datetime.strptime(time_val, "%H:%M:%S")
+        except ValueError:
+            raise ValueError(f"Invalid {name} format: {time_val}. Expected HH:MM:SS format")
+
+    # Construct datetime strings for SQL
+    start_dt = f"datetime('{business_date} {start_time}')"
+    end_dt = f"datetime('{business_date} {end_time}')"
+
+    return start_dt, end_dt

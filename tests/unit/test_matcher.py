@@ -1,8 +1,9 @@
 """Unit tests for record matcher"""
 import pytest
 import pandas as pd
+import time
 from unittest.mock import patch
-from src.validation.matcher import match_records, MATCHING_KEYS_BOND
+from src.validation.matcher import match_records, match_records_by_position, MATCHING_KEYS_BOND, CHUNK_SIZE
 
 
 @pytest.fixture
@@ -183,3 +184,123 @@ def test_match_records_settle_speed_difference():
     assert len(matched) == 0
     assert len(left_only) == 1
     assert len(right_only) == 1
+
+
+# Tests for position-based matching (NEW)
+
+
+def test_position_based_matching_equal_size():
+    """Verify matching when both DataFrames have same size"""
+    left_df = pd.DataFrame({
+        'receive_time': pd.to_datetime(['2026-01-15 10:00:00', '2026-01-15 10:05:00', '2026-01-15 10:10:00']),
+        'exch_product_id': ['CGB01', 'CGB02', 'CGB03'],
+        'settle_speed': ['T+0', 'T+0', 'T+1'],
+        'price': [100.5, 101.0, 102.0]
+    })
+
+    right_df = pd.DataFrame({
+        'receive_time': pd.to_datetime(['2026-01-15 10:00:00', '2026-01-15 10:05:00', '2026-01-15 10:10:00']),
+        'exch_product_id': ['CGB01', 'CGB02', 'CGB03'],
+        'settle_speed': ['T+0', 'T+0', 'T+1'],
+        'price': [100.5, 101.0, 102.0]
+    })
+
+    matched, left_only, right_only = match_records_by_position(left_df, right_df)
+
+    # All records should match (same size)
+    assert len(matched) == 3
+    assert len(left_only) == 0
+    assert len(right_only) == 0
+
+    # Verify matched structure (MultiIndex columns)
+    assert len(matched.columns) == len(left_df.columns) * 2
+    assert ('left', 'price') in matched.columns
+    assert ('right', 'price') in matched.columns
+
+
+def test_position_based_matching_unequal_size():
+    """Verify unpaired records when DataFrames have different sizes"""
+    left_df = pd.DataFrame({
+        'receive_time': pd.to_datetime(['2026-01-15 10:00:00', '2026-01-15 10:05:00', '2026-01-15 10:10:00']),
+        'exch_product_id': ['CGB01', 'CGB02', 'CGB03'],
+        'price': [100.5, 101.0, 102.0]
+    })
+
+    right_df = pd.DataFrame({
+        'receive_time': pd.to_datetime(['2026-01-15 10:00:00', '2026-01-15 10:05:00']),
+        'exch_product_id': ['CGB01', 'CGB02'],
+        'price': [100.5, 101.0]
+    })
+
+    matched, left_only, right_only = match_records_by_position(left_df, right_df)
+
+    # First 2 records should match
+    assert len(matched) == 2
+    # 1 record only in left
+    assert len(left_only) == 1
+    assert left_only['exch_product_id'].values[0] == 'CGB03'
+    # No records only in right
+    assert len(right_only) == 0
+
+
+def test_position_based_matching_empty_dataframes():
+    """Verify handling of empty DataFrames"""
+    # Both empty
+    left_df_empty = pd.DataFrame(columns=['receive_time', 'exch_product_id', 'price'])
+    right_df_empty = pd.DataFrame(columns=['receive_time', 'exch_product_id', 'price'])
+
+    matched, left_only, right_only = match_records_by_position(left_df_empty, right_df_empty)
+
+    assert len(matched) == 0
+    assert len(left_only) == 0
+    assert len(right_only) == 0
+
+    # One empty
+    left_df = pd.DataFrame({
+        'receive_time': pd.to_datetime(['2026-01-15 10:00:00']),
+        'exch_product_id': ['CGB01'],
+        'price': [100.5]
+    })
+
+    right_df_empty2 = pd.DataFrame(columns=['receive_time', 'exch_product_id', 'price'])
+
+    matched, left_only, right_only = match_records_by_position(left_df, right_df_empty2)
+
+    # No matches, all left records are unpaired
+    assert len(matched) == 0
+    assert len(left_only) == 1
+    assert len(right_only) == 0
+
+
+def test_position_based_matching_performance():
+    """Verify <10 second performance for 10,000 records"""
+    # Create large datasets
+    n = 10000
+    left_df = pd.DataFrame({
+        'receive_time': pd.to_datetime([f'2026-01-15 10:{i//60:02d}:{i%60:02d}' for i in range(n)]),
+        'exch_product_id': [f'CGB{i%100:03d}' for i in range(n)],
+        'settle_speed': ['T+0' if i % 2 == 0 else 'T+1' for i in range(n)],
+        'price': [100 + i * 0.001 for i in range(n)]
+    })
+
+    right_df = pd.DataFrame({
+        'receive_time': pd.to_datetime([f'2026-01-15 10:{i//60:02d}:{i%60:02d}' for i in range(n)]),
+        'exch_product_id': [f'CGB{i%100:03d}' for i in range(n)],
+        'settle_speed': ['T+0' if i % 2 == 0 else 'T+1' for i in range(n)],
+        'price': [100 + i * 0.001 for i in range(n)]
+    })
+
+    # Measure execution time
+    start_time = time.time()
+    matched, left_only, right_only = match_records_by_position(left_df, right_df)
+    elapsed_time = time.time() - start_time
+
+    # Verify results
+    assert len(matched) == n
+    assert len(left_only) == 0
+    assert len(right_only) == 0
+
+    # Verify performance target
+    assert elapsed_time < 10.0, f"Position-based matching took {elapsed_time:.2f}s, expected <10s"
+
+    print(f"Position-based matching for {n} records: {elapsed_time:.2f}s (<10s target met)")

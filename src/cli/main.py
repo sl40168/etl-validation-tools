@@ -55,6 +55,14 @@ Validation Steps:
     )
 
     parser.add_argument(
+        '--matching-strategy',
+        choices=['position', 'composite'],
+        default='position',
+        help='Strategy for matching records from left/right sources (default: position). '
+             'Use "position" for pre-sorted data, "composite" for backward compatibility.'
+    )
+
+    parser.add_argument(
         '--version',
         action='version',
         version=f'etl-validator version {VERSION}'

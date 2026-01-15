@@ -188,3 +188,145 @@ def test_chunk_query_failure(mock_session):
             business_date='2026.01.15',
             chunk_size=100000
         ))
+
+
+def test_query_with_order_by(mock_session):
+    """Verify ORDER BY clause is added to queries"""
+    mock_df = pd.DataFrame({
+        'business_date': ['2026.01.15'],
+        'exch_product_id': ['CGB01'],
+        'product_type': ['BOND'],
+        'receive_time': [pd.Timestamp('2026-01-15 10:00:00')],
+        'settle_speed': ['T+0']
+    })
+    mock_session.run.return_value = mock_df
+
+    result = execute_query(
+        session=mock_session,
+        database='market_data',
+        table_name='market_price',
+        business_date='2026.01.15',
+        product_type='BOND'
+    )
+
+    # Verify ORDER BY clause is in query
+    call_args = mock_session.run.call_args[0][0]
+    assert 'order by receive_time, exch_product_id, settle_speed' in call_args
+    pd.testing.assert_frame_equal(result, mock_df)
+
+
+def test_order_by_in_both_instances():
+    """Verify both left and right queries have same ORDER BY"""
+    mock_left_session = Mock(spec=object)
+    mock_right_session = Mock(spec=object)
+
+    # Mock data
+    mock_df = pd.DataFrame({
+        'business_date': ['2026.01.15'],
+        'exch_product_id': ['CGB01'],
+        'product_type': ['BOND'],
+        'receive_time': [pd.Timestamp('2026-01-15 10:00:00')],
+        'settle_speed': ['T+0']
+    })
+    mock_left_session.run.return_value = mock_df
+    mock_right_session.run.return_value = mock_df
+
+    # Execute queries for both instances
+    left_result = execute_query(
+        session=mock_left_session,
+        database='market_data',
+        table_name='market_price',
+        business_date='2026.01.15',
+        product_type='BOND'
+    )
+
+    right_result = execute_query(
+        session=mock_right_session,
+        database='market_data',
+        table_name='market_price',
+        business_date='2026.01.15',
+        product_type='BOND'
+    )
+
+    # Verify both queries have same ORDER BY clause
+    left_query = mock_left_session.run.call_args[0][0]
+    right_query = mock_right_session.run.call_args[0][0]
+
+    assert 'order by receive_time, exch_product_id, settle_speed' in left_query
+    assert 'order by receive_time, exch_product_id, settle_speed' in right_query
+
+    # Verify queries are identical
+    assert left_query == right_query
+
+    pd.testing.assert_frame_equal(left_result, right_result)
+
+
+def test_time_filter_for_bond_fut(mock_session):
+    """Verify time filter is added for BOND_FUT product type"""
+    mock_df = pd.DataFrame({
+        'business_date': ['2026.01.15'],
+        'exch_product_id': ['TF01'],
+        'product_type': ['BOND_FUT'],
+        'receive_time': [pd.Timestamp('2026-01-15 10:00:00')],
+        'settle_speed': ['T+0']
+    })
+    mock_session.run.return_value = mock_df
+
+    result = execute_query(
+        session=mock_session,
+        database='market_data',
+        table_name='market_price',
+        business_date='2026.01.15',
+        product_type='BOND_FUT'
+    )
+
+    # Verify time filter is in query
+    call_args = mock_session.run.call_args[0][0]
+    assert "receive_time > datetime('2026.01.15 09:30:00')" in call_args
+    assert "receive_time < datetime('2026.01.15 15:00:00')" in call_args
+    pd.testing.assert_frame_equal(result, mock_df)
+
+
+def test_no_time_filter_for_other_types(mock_session):
+    """Verify time filter is NOT applied to non-BOND_FUT product types"""
+    # Test BOND (no time filter expected)
+    mock_df_bond = pd.DataFrame({
+        'business_date': ['2026.01.15'],
+        'exch_product_id': ['CGB01'],
+        'product_type': ['BOND'],
+        'receive_time': [pd.Timestamp('2026-01-15 10:00:00')]
+    })
+    mock_session.run.return_value = mock_df_bond
+
+    execute_query(
+        session=mock_session,
+        database='market_data',
+        table_name='market_price',
+        business_date='2026.01.15',
+        product_type='BOND'
+    )
+
+    call_args = mock_session.run.call_args[0][0]
+    # Should NOT have time filter for BOND
+    assert "datetime('2026.01.15 09:30:00')" not in call_args
+    assert "datetime('2026.01.15 15:00:00')" not in call_args
+
+    # Test without product_type filter (no time filter expected)
+    mock_session.reset_mock()
+    mock_df_no_filter = pd.DataFrame({
+        'business_date': ['2026.01.15'],
+        'exch_product_id': ['CGB01']
+    })
+    mock_session.run.return_value = mock_df_no_filter
+
+    execute_query(
+        session=mock_session,
+        database='market_data',
+        table_name='market_price',
+        business_date='2026.01.15'
+    )
+
+    call_args = mock_session.run.call_args[0][0]
+    # Should NOT have time filter when no product_type specified
+    assert "datetime('2026.01.15 09:30:00')" not in call_args
+    assert "datetime('2026.01.15 15:00:00')" not in call_args
