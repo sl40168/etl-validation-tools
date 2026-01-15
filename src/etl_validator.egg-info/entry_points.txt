@@ -1,0 +1,2 @@
+[console_scripts]
+etl_validator = cli.main:main

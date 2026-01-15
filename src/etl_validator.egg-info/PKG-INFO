@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: etl-validator
+Version: 1.0.0
+Summary: DolphinDB ETL Data Validation Tool
+Author: 
+Requires-Python: >=3.8
+Requires-Dist: dolphindb>=1.30.0
+Requires-Dist: pandas>=1.3.0
+Requires-Dist: retrying>=1.3.3
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
