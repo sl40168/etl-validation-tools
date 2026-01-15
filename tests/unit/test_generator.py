@@ -14,7 +14,7 @@ def sample_validation_stats():
     return {
         'step': 1,
         'product_type': 'BOND',
-        'tick_type': 'TRADE',
+        'message_type': 'TRADE',
         'left_retrieved_count': 45234,
         'right_retrieved_count': 45198,
         'matched_count': 45123,
@@ -33,10 +33,11 @@ def sample_validation_stats():
 def sample_group_info():
     """Create sample validation group info"""
     return ValidationGroup(
-        step=1,
+        group_id=1,
         product_type='BOND',
-        tick_type='TRADE',
-        description='Bond trade data'
+        message_type='TRADE',
+        description='Bond trade data',
+        required_columns=[]
     )
 
 
@@ -200,7 +201,7 @@ def test_generate_report_with_all_zeros(sample_validation_stats, sample_group_in
     zero_stats = {
         'step': 2,
         'product_type': 'BOND',
-        'tick_type': 'QUOTE',
+        'message_type': 'QUOTE',
         'left_retrieved_count': 0,
         'right_retrieved_count': 0,
         'matched_count': 0,
@@ -210,7 +211,13 @@ def test_generate_report_with_all_zeros(sample_validation_stats, sample_group_in
         'right_unmatched_count': 0
     }
 
-    group = ValidationGroup(step=2, product_type='BOND', tick_type='QUOTE', description='Bond quote data')
+    group = ValidationGroup(
+        group_id=2,
+        product_type='BOND',
+        message_type='QUOTE',
+        description='Bond quote data',
+        required_columns=[]
+    )
     validation_date = "20260115"
 
     with tempfile.TemporaryDirectory() as temp_dir:

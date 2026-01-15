@@ -28,7 +28,7 @@ def generate_report(
     os.makedirs(output_dir, exist_ok=True)
 
     # Generate filename
-    filename = f"validation_{group_info.product_type}_{group_info.tick_type}_{validation_date}.md"
+    filename = f"validation_{group_info.product_type}_{group_info.message_type}_{validation_date}.md"
     report_path = os.path.join(output_dir, filename)
 
     # Get current timestamp
@@ -38,7 +38,7 @@ def generate_report(
     display_date = f"{validation_date[0:4]}-{validation_date[4:6]}-{validation_date[6:8]}"
 
     # Build report content
-    content = f"""# Validation Report: {group_info.product_type}/{group_info.tick_type}
+    content = f"""# Validation Report: {group_info.product_type}/{group_info.message_type}
 
 **Validation Date**: {display_date}
 **Generated At**: {generated_at}

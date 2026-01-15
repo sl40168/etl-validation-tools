@@ -7,7 +7,7 @@
 ## Command Structure
 
 ```bash
-python -m etl_validator_group --config <path> --date <YYYYMMDD> [--step <1|2|3>]
+python -m etl_validator --config <path> --date <YYYYMMDD> [--step <1|2|3>]
 ```
 
 ## Parameters
@@ -119,7 +119,7 @@ database = market_data
 ### Validate All Groups (Sequential)
 
 ```bash
-python -m etl_validator_group --config config/dolphindb.ini --date 20260115
+python -m etl_validator --config config/dolphindb.ini --date 20260115
 ```
 
 Output:
@@ -129,7 +129,7 @@ Output:
 ### Validate Single Group (BOND TRADE)
 
 ```bash
-python -m etl_validator_group --config config/dolphindb.ini --date 20260115 --step 1
+python -m etl_validator --config config/dolphindb.ini --date 20260115 --step 1
 ```
 
 Output:
@@ -139,7 +139,7 @@ Output:
 ### Validate Single Group (BOND QUOTE)
 
 ```bash
-python -m etl_validator_group --config config/dolphindb.ini --date 20260115 --step 2
+python -m etl_validator --config config/dolphindb.ini --date 20260115 --step 2
 ```
 
 Output:
@@ -149,7 +149,7 @@ Output:
 ### Validate Single Group (BOND_FUT SNAPSHOT)
 
 ```bash
-python -m etl_validator_group --config config/dolphindb.ini --date 20260115 --step 3
+python -m etl_validator --config config/dolphindb.ini --date 20260115 --step 3
 ```
 
 Output:
@@ -159,7 +159,7 @@ Output:
 ## Help Command
 
 ```bash
-python -m etl_validator_group --help
+python -m etl_validator --help
 ```
 
 Output:

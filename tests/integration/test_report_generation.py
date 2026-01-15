@@ -15,7 +15,7 @@ def sample_validation_stats():
     return {
         'step': 1,
         'product_type': 'BOND',
-        'tick_type': 'TRADE',
+        'message_type': 'TRADE',
         'left_retrieved_count': 45234,
         'right_retrieved_count': 45198,
         'matched_count': 45123,
@@ -34,10 +34,11 @@ def sample_validation_stats():
 def sample_group_info():
     """Create sample validation group info"""
     return ValidationGroup(
-        step=1,
+        group_id=1,
         product_type='BOND',
-        tick_type='TRADE',
-        description='Bond trade data'
+        message_type='TRADE',
+        description='Bond trade data',
+        required_columns=[]
     )
 
 
@@ -113,7 +114,7 @@ def test_generate_report_all_groups():
     stats = {
         'step': 1,
         'product_type': 'BOND',
-        'tick_type': 'TRADE',
+        'message_type': 'TRADE',
         'left_retrieved_count': 1000,
         'right_retrieved_count': 1000,
         'matched_count': 1000,
@@ -126,17 +127,17 @@ def test_generate_report_all_groups():
     with tempfile.TemporaryDirectory() as temp_dir:
         # Generate reports for all 3 groups
         groups = [
-            ValidationGroup(1, 'BOND', 'TRADE', 'Bond trade data'),
-            ValidationGroup(2, 'BOND', 'QUOTE', 'Bond quote data'),
-            ValidationGroup(3, 'BOND_FUT', 'SNAPSHOT', 'Bond futures snapshot data')
+            ValidationGroup(1, 'BOND', 'TRADE', 'Bond trade data', []),
+            ValidationGroup(2, 'BOND', 'QUOTE', 'Bond quote data', []),
+            ValidationGroup(3, 'BOND_FUT', 'SNAPSHOT', 'Bond futures snapshot data', [])
         ]
 
         report_paths = []
         for group in groups:
             stats_copy = stats.copy()
-            stats_copy['step'] = group.step
+            stats_copy['step'] = group.group_id
             stats_copy['product_type'] = group.product_type
-            stats_copy['tick_type'] = group.tick_type
+            stats_copy['message_type'] = group.message_type
 
             report_path = generate_report(
                 stats_copy,

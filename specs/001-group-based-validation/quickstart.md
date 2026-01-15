@@ -63,7 +63,7 @@ pip install -r requirements.txt
 ### 4. Verify Installation
 
 ```bash
-python -m etl_validator_group --help
+python -m etl_validator --help
 ```
 
 Expected output:
@@ -132,7 +132,7 @@ print(f"Right instance connected: {s2.run('version()')}")
 Run validation for all three groups sequentially:
 
 ```bash
-python -m etl_validator_group --config config/dolphindb.ini --date 20260115
+python -m etl_validator --config config/dolphindb.ini --date 20260115
 ```
 
 Output:
@@ -164,19 +164,19 @@ Output:
 Validate only BOND TRADE (step 1):
 
 ```bash
-python -m etl_validator_group --config config/dolphindb.ini --date 20260115 --step 1
+python -m etl_validator --config config/dolphindb.ini --date 20260115 --step 1
 ```
 
 Validate only BOND QUOTE (step 2):
 
 ```bash
-python -m etl_validator_group --config config/dolphindb.ini --date 20260115 --step 2
+python -m etl_validator --config config/dolphindb.ini --date 20260115 --step 2
 ```
 
 Validate only BOND_FUT SNAPSHOT (step 3):
 
 ```bash
-python -m etl_validator_group --config config/dolphindb.ini --date 20260115 --step 3
+python -m etl_validator --config config/dolphindb.ini --date 20260115 --step 3
 ```
 
 ---
@@ -308,7 +308,7 @@ Run all groups validation for today's business date:
 DATE=$(date +%Y%m%d)
 
 # Run validation
-python -m etl_validator_group --config config/dolphindb.ini --date $DATE
+python -m etl_validator --config config/dolphindb.ini --date $DATE
 ```
 
 ### Use Case 2: Validate Specific Group After ETL
@@ -316,7 +316,7 @@ python -m etl_validator_group --config config/dolphindb.ini --date $DATE
 Validate BOND QUOTE data after ETL pipeline completes:
 
 ```bash
-python -m etl_validator_group --config config/dolphindb.ini --date 20260115 --step 2
+python -m etl_validator --config config/dolphindb.ini --date 20260115 --step 2
 ```
 
 ### Use Case 3: Historical Validation
@@ -324,7 +324,7 @@ python -m etl_validator_group --config config/dolphindb.ini --date 20260115 --st
 Validate historical data for a specific date:
 
 ```bash
-python -m etl_validator_group --config config/dolphindb.ini --date 20260110 --step 1
+python -m etl_validator --config config/dolphindb.ini --date 20260110 --step 1
 ```
 
 ### Use Case 4: Automated Scheduled Validation
@@ -332,7 +332,7 @@ python -m etl_validator_group --config config/dolphindb.ini --date 20260110 --st
 Create a cron job to run daily validation at 10:00 PM:
 
 ```cron
-0 22 * * * cd /path/to/etl-validation-tools && /path/to/conda/envs/etl-validation/bin/python -m etl_validator_group --config config/dolphindb.ini --date $(date +\%Y\%m\%d) >> logs/validation_$(date +\%Y\%m\%d).log 2>&1
+0 22 * * * cd /path/to/etl-validation-tools && /path/to/conda/envs/etl-validation/bin/python -m etl_validator --config config/dolphindb.ini --date $(date +\%Y\%m\%d) >> logs/validation_$(date +\%Y\%m\%d).log 2>&1
 ```
 
 ---
@@ -401,7 +401,7 @@ If validating multiple dates, run validation for each date in a loop:
 
 ```bash
 for date in 20260110 20260111 20260112; do
-    python -m etl_validator_group --config config/dolphindb.ini --date $date
+    python -m etl_validator --config config/dolphindb.ini --date $date
 done
 ```
 

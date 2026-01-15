@@ -29,9 +29,9 @@ Examples:
   python -m etl_validator --config config/db_connections.ini --date 20260115 --step 1
 
 Validation Steps:
-  1  BOND/TRADE data
-  2  BOND/QUOTE data
-  3  BOND_FUT/SNAPSHOT data
+  1  BOND TRADE data
+  2  BOND QUOTE data
+  3  BOND_FUT SNAPSHOT data
         """
     )
 
@@ -51,7 +51,7 @@ Validation Steps:
         '--step',
         type=int,
         choices=[1, 2, 3],
-        help='Optional: Execute only validation step N (1, 2, or 3)'
+        help='Optional: Execute only validation step N (1=BOND TRADE, 2=BOND QUOTE, 3=BOND_FUT SNAPSHOT)'
     )
 
     parser.add_argument(

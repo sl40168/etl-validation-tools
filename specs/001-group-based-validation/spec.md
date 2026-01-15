@@ -89,7 +89,7 @@ As a data quality analyst, I need to validate bond futures snapshot data against
 - **FR-008**: System MUST provide clear validation results indicating pass/fail status for each column
 - **FR-009**: System MUST ignore additional columns not specified in the validation group's required column list
 - **FR-010**: System MUST treat columns where both left and right instances have null/empty values as passing validation
-- **FR-011**: System MUST support extensible group definitions to add new groups in the future
+- **FR-011**: System MUST support extensible group definitions via YAML configuration file (config/groups.yaml) to add new groups in the future without code changes
 
 ### Key Entities
 

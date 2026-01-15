@@ -382,6 +382,120 @@ ValidationGroup (1) ----< (1..n) ValidationRule
 - Precision: Volumes = integer (0 decimals), Prices/Yields = 5 decimals
 
 ### Configuration Constraints
-- Groups are pre-configured in code (not user-configurable at runtime)
-- Step parameter values limited to 1, 2, or 3
+- Groups are configured in YAML file (config/groups.yaml) - runtime extensible without code changes
+- Step parameter values limited to 1, 2, or 3 (corresponding to group_id)
 - All groups use the same composite key for matching: (receive_time, exch_product_id, settle_speed)
+
+---
+
+## Business Rules for Data Type Validation
+
+This section defines the expected data types and business rules for each column category across all validation groups.
+
+### Base Identifier Columns (All Groups)
+
+| Column | Type | Required | Nullable | Precision | Validation Rules |
+|--------|------|----------|----------|-----------|-----------------|
+| `business_date` | datetime | Yes | False | - | Must match YYYYMMDD format, cannot be NULL |
+| `exch_product_id` | str | Yes | False | - | Non-empty string, product identifier, cannot be NULL |
+| `product_type` | str | Yes | False | - | One of: "BOND", "BOND_FUT", cannot be NULL |
+| `exchange` | str | Yes | False | - | Exchange code (e.g., "SSE", "SZSE"), cannot be NULL |
+| `source` | str | Yes | False | - | Data source identifier, cannot be NULL |
+| `settle_speed` | int | Yes | False | 0 | Settlement speed code, integer, cannot be NULL |
+
+### Trade Data Columns (BOND TRADE, BOND_FUT SNAPSHOT)
+
+| Column | Type | Required | Nullable | Precision | Validation Rules |
+|--------|------|----------|----------|-----------|-----------------|
+| `last_trade_price` | float | Yes | True | 5 | Decimal price, max 5 decimal places, can be NULL if no trade |
+| `last_trade_yield` | float | Yes | True | 5 | Decimal yield (percent), max 5 decimal places, can be NULL if no trade |
+| `last_trade_yield_type` | str | Yes | True | - | Yield type code (e.g., "YTM", "YTC"), can be NULL if no trade |
+| `last_trade_volume` | int | Yes | True | 0 | Trade volume in shares, integer, can be NULL if no trade |
+| `last_trade_turnover` | float | Yes | True | 2 | Trade turnover in currency, max 2 decimal places, can be NULL if no trade |
+| `last_trade_interest` | float | Yes | True | 0 | Interest amount, can be NULL if no trade |
+| `last_trade_side` | str | Yes | True | - | Trade side (e.g., "B", "S", "N"), can be NULL if no trade |
+| `level` | int | Yes | False | 0 | Price level indicator (typically 0), cannot be NULL |
+| `status` | str | Yes | False | - | Trade status (e.g., "A", "C"), cannot be NULL |
+
+### Market Summary Columns (BOND_FUT SNAPSHOT Only)
+
+| Column | Type | Required | Nullable | Precision | Validation Rules |
+|--------|------|----------|----------|-----------|-----------------|
+| `pre_close_price` | float | Yes | True | 5 | Previous day's close price, can be NULL on new instruments |
+| `pre_settle_price` | float | Yes | True | 5 | Previous day's settlement price, can be NULL on new instruments |
+| `pre_interest` | int | Yes | True | 0 | Previous day's open interest, can be NULL on new instruments |
+| `open_price` | float | Yes | True | 5 | Today's opening price, can be NULL if no trades yet |
+| `high_price` | float | Yes | True | 5 | Today's high price, can be NULL if no trades yet |
+| `low_price` | float | Yes | True | 5 | Today's low price, can be NULL if no trades yet |
+| `close_price` | float | Yes | True | 5 | Today's close price, can be NULL if market not closed |
+| `settle_price` | float | Yes | True | 5 | Today's settlement price, can be NULL if not set |
+| `upper_limit` | float | Yes | True | 5 | Daily upper price limit, can be NULL if not applicable |
+| `lower_limit` | float | Yes | True | 5 | Daily lower price limit, can be NULL if not applicable |
+| `total_volume` | int | Yes | True | 0 | Total trading volume today, can be NULL if no trades |
+| `total_turnover` | float | Yes | True | 2 | Total trading turnover today, can be NULL if no trades |
+| `open_interest` | int | Yes | True | 0 | Today's open interest, can be NULL if not applicable |
+
+### Quote Level Columns (BOND QUOTE, BOND_FUT SNAPSHOT)
+
+For each price level (0-5 in BOND QUOTE, 0-1 in BOND_FUT SNAPSHOT):
+
+| Column Pattern | Type | Required | Nullable | Precision | Validation Rules |
+|----------------|------|----------|----------|-----------|-----------------|
+| `bid_X_price` | float | Yes | True | 5 | Bid price at level X, max 5 decimals, can be NULL |
+| `bid_X_yield` | float | Yes | True | 5 | Bid yield at level X (percent), max 5 decimals, can be NULL |
+| `bid_X_yield_type` | str | Yes | True | - | Bid yield type code at level X, can be NULL |
+| `bid_X_tradable_volume` | int | Yes | True | 0 | Tradable volume at bid level X, can be NULL |
+| `bid_X_volume` | int | Yes | True | 0 | Total volume at bid level X, can be NULL |
+| `offer_X_price` | float | Yes | True | 5 | Offer price at level X, max 5 decimals, can be NULL |
+| `offer_X_yield` | float | Yes | True | 5 | Offer yield at level X (percent), max 5 decimals, can be NULL |
+| `offer_X_yield_type` | str | Yes | True | - | Offer yield type code at level X, can be NULL |
+| `offer_X_tradable_volume` | int | Yes | True | 0 | Tradable volume at offer level X, can be NULL |
+| `offer_X_volume` | int | Yes | True | 0 | Total volume at offer level X, can be NULL |
+
+**Note**: In BOND QUOTE, X ranges from 0 to 5 (6 levels). In BOND_FUT SNAPSHOT, X ranges from 0 to 1 (2 levels).
+
+### Type Validation Implementation Rules
+
+The `validate_types()` method in `ColumnValidator` must enforce these rules:
+
+1. **Integer Fields** (precision=0): Reject values with non-zero decimal places
+   - Example: `settle_speed` value of `10.5` should fail validation
+   - Accept: `10`, `-5`, `0`
+   - Reject: `10.5`, `10.0` (if stored as float with decimals)
+
+2. **Float Fields with Precision Limit** (precision=5 for prices/yields):
+   - Accept: `100.12345`, `99.5`, `100.0`
+   - Reject: `100.123456` (6 decimal places), `100.1234567`
+
+3. **Float Fields with 2 Decimal Places** (turnover):
+   - Accept: `12345.67`, `100.0`, `0.01`
+   - Reject: `12345.678` (3 decimal places)
+
+4. **String Fields**: Non-empty string if not NULL
+   - Accept: `"BOND"`, `"SSE"`, `"YTM"`
+   - Reject: `""` (empty string), `None` (if nullable=False)
+
+5. **Datetime Fields**: Valid datetime in YYYYMMDD format
+   - Accept: `"20260115"`, datetime objects
+   - Reject: `"2026-01-15"` (wrong format), `"20261301"` (invalid month), `None` (if nullable=False)
+
+6. **NULL Handling**:
+   - If `nullable=True`: Accept `None`, `pd.NA`, `numpy.nan`
+   - If `nullable=False`: Reject all NULL values
+
+### Example: type_rules Parameter Structure
+
+The `type_rules` parameter passed to `ColumnValidator` should be structured as:
+
+```python
+type_rules = {
+    "business_date": {"type": "datetime", "nullable": False},
+    "exch_product_id": {"type": "str", "nullable": False},
+    "settle_speed": {"type": "int", "nullable": False, "precision": 0},
+    "last_trade_price": {"type": "float", "nullable": True, "precision": 5},
+    "last_trade_yield": {"type": "float", "nullable": True, "precision": 5},
+    "last_trade_volume": {"type": "int", "nullable": True, "precision": 0},
+    "bid_0_price": {"type": "float", "nullable": True, "precision": 5},
+    # ... and so on for all required columns
+}
+```

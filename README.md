@@ -5,9 +5,12 @@ A CLI-based data validation tool that retrieves market price data from two Dolph
 ## Features
 
 - **Data Matching**: Match records from two DolphinDB instances using composite key (receive_time, exch_product_id, settle_speed)
-- **Column Comparison**: Compare 84 columns with precision-aware comparison (volumes, prices, yields)
+- **Column Comparison**: Compare columns with precision-aware comparison (volumes, prices, yields)
 - **Chunked Processing**: Handle up to 2M records per instance with memory-efficient processing
-- **Validation Groups**: Support for 3 predefined groups (BOND/TRADE, BOND/QUOTE, BOND_FUT/SNAPSHOT)
+- **Validation Groups**: Support for 3 predefined groups (BOND TRADE, BOND QUOTE, BOND_FUT SNAPSHOT)
+  - Step 1: BOND TRADE (18 columns)
+  - Step 2: BOND QUOTE (60 columns)
+  - Step 3: BOND_FUT SNAPSHOT (39 columns)
 - **Retry Logic**: Automatic retry for connection failures and query errors (3 attempts with exponential backoff)
 - **Report Generation**: Generate detailed Markdown reports with statistics on matched/unmatched records
 
@@ -57,21 +60,28 @@ database = market_data
 ### Run Full Validation (All 3 Groups)
 
 ```bash
-python -m etl_validator --config config/db_connections.ini --date 20260115
+etl_validator --config config/db_connections.ini --date 20260115
 ```
 
 ### Run Single Step Validation
 
 ```bash
-# Step 1: BOND/TRADE
-python -m etl_validator --config config/db_connections.ini --date 20260115 --step 1
+# Step 1: BOND TRADE (18 columns)
+etl_validator --config config/db_connections.ini --date 20260115 --step 1
 
-# Step 2: BOND/QUOTE
-python -m etl_validator --config config/db_connections.ini --date 20260115 --step 2
+# Step 2: BOND QUOTE (60 columns)
+etl_validator --config config/db_connections.ini --date 20260115 --step 2
 
-# Step 3: BOND_FUT/SNAPSHOT
-python -m etl_validator --config config/db_connections.ini --date 20260115 --step 3
+# Step 3: BOND_FUT SNAPSHOT (39 columns)
+etl_validator --config config/db_connections.ini --date 20260115 --step 3
 ```
+
+### Command Options
+
+- `--config`: Path to database configuration file (required)
+- `--date`: Business date in YYYYMMDD format (required)
+- `--step`: Validation step to run (1=BOND TRADE, 2=BOND QUOTE, 3=BOND_FUT SNAPSHOT). If not specified, runs all steps sequentially
+- `--help`: Display help message with all options
 
 ## Output
 
